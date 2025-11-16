@@ -1,8 +1,9 @@
 data/
+saigen90/
+precomputed_features/
+ResNet18/
+ResNet18_transfer_off/
+ResNet50/
+retry90/
 command.txt
 WORKSPACE_STRUCTURE.md
-requirements.txt
-retry90/models
-retry90/__pycache__
-retry90/confusion_matrix.png
-retry90/evaluate.py
