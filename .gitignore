@@ -6,8 +6,10 @@ ResNet50/
 retry90/
 command.txt
 WORKSPACE_STRUCTURE.md
+.DS_Store
 
 # ExcludeGLCM/
+ExcludeGLCM/.DS_Store
 ExcludeGLCM/__pycache__/
 ExcludeGLCM/models/
 ExcludeGLCM/result/
