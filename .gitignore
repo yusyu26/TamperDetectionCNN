@@ -1,5 +1,4 @@
 data/
-saigen90/
 precomputed_features/
 ResNet18/
 ResNet18_transfer_off/
@@ -7,3 +6,13 @@ ResNet50/
 retry90/
 command.txt
 WORKSPACE_STRUCTURE.md
+
+# ExcludeGLCM/
+ExcludeGLCM/__pycache__/
+ExcludeGLCM/models/
+ExcludeGLCM/result/
+ExcludeGLCM/confusion_matrix.png
+ExcludeGLCM/GLCM_calculate.py
+ExcludeGLCM/kensyo_7ch.py
+ExcludeGLCM/test_local_glcm.py
+ExcludeGLCM/utils.py

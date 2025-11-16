@@ -29,7 +29,7 @@ def set_seed(seed):
         torch.mps.manual_seed(seed)
 
 def train(config):
-    # シード値の設定（完全な再現性のため）
+    # シード値の設定（再現性のため）
     seed = config['dataset']['seed']
     set_seed(seed)
     print(f"🌱 Seed set to: {seed}")

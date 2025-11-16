@@ -8,6 +8,8 @@ import cv2
 import numpy as np
 from skimage.feature import graycomatrix, graycoprops
 from typing import List, Tuple, Dict, Any
+from skimage.feature import graycomatrix, graycoprops
+from tqdm import tqdm
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -168,23 +170,22 @@ def compute_residual_features(image: np.ndarray, methods: List[str] = ["median",
     return np.stack(residuals, axis=2)
 
 
-def create_23_channel_features(image: np.ndarray, config: Dict[str, Any]) -> np.ndarray:
+def create_7_channel_features(image: np.ndarray, config: Dict[str, Any]) -> np.ndarray:
     """
-    90%精度モデルの23チャンネル特徴量を作成
+    90%精度モデルの7チャンネル特徴量を作成
     
     構成:
     - 基本色差チャンネル: 2ch (Cr, Cb)
     - エッジ検出: 1ch (CrチャンネルのScharr)
-    - GLCM特徴量: 16ch (Cr, Cb各8ch)
     - 残差特徴量: 4ch (Cr, Cb各2ch)
-    合計: 23チャンネル
-    
+    合計: 7チャンネル
+
     Args:
         image: RGB画像 (H, W, 3)
         config: 設定辞書
     
     Returns:
-        23チャンネル特徴量 (H, W, 23)
+        7チャンネル特徴量 (H, W, 7)
     """
     preprocessing_config = config['preprocessing']
     
@@ -203,35 +204,8 @@ def create_23_channel_features(image: np.ndarray, config: Dict[str, Any]) -> np.
     # 2. エッジ検出：Crチャンネルに適用 (1ch)
     edge_image = apply_scharr_edge_detection(cr_channel)
     feature_channels.append(edge_image[:, :, np.newaxis])     # ch 2: Crエッジ
-    
-    # 3. GLCM特徴量：Cr、Cbそれぞれに適用 (16ch)
-    glcm_config = preprocessing_config['glcm']
-    
-    # Crチャンネル用GLCM (8ch)
-    glcm_cr = compute_glcm_features(
-        cr_channel,
-        distances=glcm_config['distances'],
-        angles=glcm_config['angles'],
-        levels=glcm_config['levels'],
-        properties=glcm_config['properties'][:2]  # 2特徴量のみ使用して8chに調整
-    )[:, :, :8]  # 最初の8チャンネルのみ
-    
-    # Cbチャンネル用GLCM (8ch)
-    glcm_cb = compute_glcm_features(
-        cb_channel,
-        distances=glcm_config['distances'],
-        angles=glcm_config['angles'],
-        levels=glcm_config['levels'],
-        properties=glcm_config['properties'][:2]  # 2特徴量のみ使用して8chに調整
-    )[:, :, :8]  # 最初の8チャンネルのみ
-    
-    # GLCM特徴量を個別チャンネルとして追加
-    for i in range(8):
-        feature_channels.append(glcm_cr[:, :, i:i+1])         # ch 3-10: Cr GLCM
-    for i in range(8):
-        feature_channels.append(glcm_cb[:, :, i:i+1])         # ch 11-18: Cb GLCM
-    
-    # 4. 残差特徴量：Cr、Cbそれぞれに適用 (4ch)
+
+    # 3. 残差特徴量：Cr、Cbそれぞれに適用 (4ch)
     residual_config = preprocessing_config['residual_features']
     methods = residual_config['methods']
     
@@ -249,8 +223,8 @@ def create_23_channel_features(image: np.ndarray, config: Dict[str, Any]) -> np.
     multi_channel_image = np.concatenate(feature_channels, axis=2)
     
     # チャンネル数の確認
-    assert multi_channel_image.shape[2] == 23, f"Expected 23 channels, got {multi_channel_image.shape[2]}"
-    
+    assert multi_channel_image.shape[2] == 7, f"Expected 7 channels, got {multi_channel_image.shape[2]}"
+
     return multi_channel_image
 
 
@@ -284,7 +258,6 @@ def calculate_accuracy(outputs: np.ndarray, targets: np.ndarray) -> float:
     accuracy = np.mean(predictions == targets)
     return accuracy
 
-
 if __name__ == "__main__":
     # テスト用
     import yaml
@@ -311,11 +284,11 @@ if __name__ == "__main__":
             }
         }
     }
-    
-    # 23チャンネル特徴量の作成をテスト
-    features = create_23_channel_features(test_image, test_config)
-    print(f"✅ 23チャンネル特徴量作成成功: {features.shape}")
-    print(f"   期待値: (128, 128, 23)")
+
+    # 7チャンネル特徴量の作成をテスト
+    features = create_7_channel_features(test_image, test_config)
+    print(f"✅ 7チャンネル特徴量作成成功: {features.shape}")
+    print(f"   期待値: (128, 128, 7)")
     print(f"   実際値: {features.shape}")
     
     # 正規化テスト
@@ -323,157 +296,4 @@ if __name__ == "__main__":
     print(f"✅ 正規化成功: {normalized.shape}, 範囲: [{normalized.min():.3f}, {normalized.max():.3f}]")
 
 
-    # 23チャンネル特徴量作成関数（コメントアウト）
-    # def create_23_channel_features_with_local_glcm(image: np.ndarray, config: Dict[str, Any]) -> np.ndarray:
-    # """
-    # 局所GLCMを使用した23チャンネル特徴量（改良版）
-    # """
-    # preprocessing_config = config['preprocessing']
-    
-    # # 1. 色空間変換
-    # color_space = preprocessing_config['color_space']
-    # channels = preprocessing_config['channels']['use_channels']
-    # converted_image = convert_color_space(image, color_space, channels)
-    
-    # cr_channel = converted_image[:, :, 0]
-    # cb_channel = converted_image[:, :, 1]
-    
-    # feature_channels = []
-    # feature_channels.append(cr_channel[:, :, np.newaxis])
-    # feature_channels.append(cb_channel[:, :, np.newaxis])
-    
-    # # 2. エッジ検出
-    # edge_image = apply_scharr_edge_detection(cr_channel)
-    # feature_channels.append(edge_image[:, :, np.newaxis])
-    
-    # # 3. 局所GLCM特徴量（改良版）
-    # glcm_config = preprocessing_config['glcm']
-    
-    # print("Computing local GLCM for Cr channel...")
-    # glcm_cr = compute_local_glcm_features(
-    #     cr_channel,
-    #     window_size=11,  # 小さめから開始（速度のため）
-    #     distances=glcm_config['distances'],
-    #     angles=glcm_config['angles'],
-    #     levels=glcm_config['levels'],
-    #     properties=glcm_config['properties'][:2]
-    # )
-    
-    # print("Computing local GLCM for Cb channel...")
-    # glcm_cb = compute_local_glcm_features(
-    #     cb_channel,
-    #     window_size=11,
-    #     distances=glcm_config['distances'],
-    #     angles=glcm_config['angles'],
-    #     levels=glcm_config['levels'],
-    #     properties=glcm_config['properties'][:2]
-    # )
-    
-    # # GLCM特徴量を追加（8チャンネルずつ）
-    # for i in range(8):
-    #     feature_channels.append(glcm_cr[:, :, i:i+1])
-    # for i in range(8):
-    #     feature_channels.append(glcm_cb[:, :, i:i+1])
-    
-    # # 4. 残差特徴量
-    # residual_config = preprocessing_config['residual_features']
-    # methods = residual_config['methods']
-    
-    # residual_cr = compute_residual_features(cr_channel, methods)
-    # feature_channels.append(residual_cr[:, :, 0:1])
-    # feature_channels.append(residual_cr[:, :, 1:2])
-    
-    # residual_cb = compute_residual_features(cb_channel, methods)
-    # feature_channels.append(residual_cb[:, :, 0:1])
-    # feature_channels.append(residual_cb[:, :, 1:2])
-    
-    # # 全チャンネル結合
-    # multi_channel_image = np.concatenate(feature_channels, axis=2)
-    
-    # assert multi_channel_image.shape[2] == 23, f"Expected 23 channels, got {multi_channel_image.shape[2]}"
-    
-    # return multi_channel_image
 
-
-# def compute_local_glcm_features(image: np.ndarray, 
-#                                window_size: int = 15,
-#                                distances: List[int] = [1, 2],
-#                                angles: List[int] = [0, 45, 90, 135],
-#                                levels: int = 16,
-#                                properties: List[str] = ['contrast', 'homogeneity']) -> np.ndarray:
-#     """
-#     局所GLCM特徴量の計算（各画素で局所ウィンドウ内のテクスチャを計算）
-    
-#     Args:
-#         image: グレースケール画像 (H, W)
-#         window_size: 局所ウィンドウサイズ
-#         distances: 距離のリスト
-#         angles: 角度のリスト（度）
-#         levels: 量子化レベル
-#         properties: 特徴量のリスト
-    
-#     Returns:
-#         局所GLCM特徴量マップ (H, W, len(distances) * len(angles) * len(properties))
-#     """
-#     h, w = image.shape
-#     pad = window_size // 2
-    
-#     # 量子化
-#     if image.max() > levels - 1:
-#         quantized = (image / (256 / levels)).astype(np.uint8)
-#         quantized = np.clip(quantized, 0, levels - 1)
-#     else:
-#         quantized = image.astype(np.uint8)
-    
-#     # パディング
-#     padded = np.pad(quantized, pad, mode='reflect')
-    
-#     # 角度をラジアンに変換
-#     angles_rad = [np.deg2rad(angle) for angle in angles]
-    
-#     # 結果配列
-#     num_features = len(distances) * len(angles) * len(properties)
-#     feature_maps = np.zeros((h, w, num_features), dtype=np.float32)
-    
-#     print(f"Computing local GLCM with {window_size}x{window_size} windows...")
-#     print(f"Image size: {h}x{w}, Total computations: {h * w}")
-    
-#     # 各画素で局所GLCMを計算（進捗バー付き）
-#     for i in tqdm(range(h), desc="Computing Local GLCM"):
-#         for j in range(w):
-#             # 局所ウィンドウを抽出
-#             local_window = padded[i:i+window_size, j:j+window_size]
-            
-#             try:
-#                 # 局所GLCMを計算
-#                 local_glcm = graycomatrix(local_window, 
-#                                         distances=distances, 
-#                                         angles=angles_rad, 
-#                                         levels=levels,
-#                                         symmetric=True, 
-#                                         normed=True)
-                
-#                 # 各特徴量を計算
-#                 feature_idx = 0
-#                 for prop in properties:
-#                     prop_values = graycoprops(local_glcm, prop)
-#                     for d_idx in range(len(distances)):
-#                         for a_idx in range(len(angles)):
-#                             feature_maps[i, j, feature_idx] = prop_values[d_idx, a_idx]
-#                             feature_idx += 1
-                            
-#             except Exception as e:
-#                 # エラーが発生した場合は中間値で埋める
-#                 feature_maps[i, j, :] = 0.5
-    
-#     # 正規化（0-255範囲）
-#     print("Normalizing features...")
-#     for ch in range(num_features):
-#         channel = feature_maps[:, :, ch]
-#         if channel.max() > channel.min():
-#             feature_maps[:, :, ch] = (channel - channel.min()) / (channel.max() - channel.min()) * 255
-#         else:
-#             feature_maps[:, :, ch] = 128  # 定数の場合は中間値
-    
-#     print(f"✅ Local GLCM computation completed: {feature_maps.shape}")
-#     return feature_maps.astype(np.uint8)

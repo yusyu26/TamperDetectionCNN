@@ -20,16 +20,16 @@ preprocessing:
   glcm:
     distances: [1, 2]
     angles: [0, 45, 90, 135] 
-    levels: 16                    # ◀ 量子化レベルを追加
-    properties: ['contrast', 'homogeneity'] # ◀ 計算する統計値の種類を追加
+    levels: 16
+    properties: ['contrast', 'homogeneity']
 
   # 残差特徴量に関する設定
-  residual_features:              # ◀ このセクションをまるごと追加！
+  residual_features:
     methods: ['median', 'gaussian']
 
 # モデル設定
 model:
-  in_channels: 23
+  in_channels: 7
   num_classes: 2
 
 # 学習設定
@@ -39,4 +39,4 @@ training:
   lr: 0.0005
   weight_decay: 0.001
   optimizer: 'Adam'
-  model_save_path: './models/0best_model_90.pth'
+  model_save_path: './models/best_model_90.pth'
