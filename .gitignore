@@ -8,7 +8,7 @@ command.txt
 WORKSPACE_STRUCTURE.md
 .DS_Store
 
-# ExcludeGLCM/
+# ExcludeGLCM
 ExcludeGLCM/.DS_Store
 ExcludeGLCM/__pycache__/
 ExcludeGLCM/models/
